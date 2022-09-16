@@ -23,10 +23,8 @@ import (
 )
 
 type HttpOption struct {
-	Name   string `json:"name"`
-	Listen string `json:"listen"`
-	Port   int    `json:"port"`
-	Users  []User `json:"users,omitempty"`
+	BaseOption
+	Users []User `json:"users,omitempty"`
 }
 
 type Http struct {

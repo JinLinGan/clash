@@ -3,6 +3,7 @@ package route
 import (
 	"net/http"
 
+	"github.com/Dreamacro/clash/config"
 	P "github.com/Dreamacro/clash/listener"
 	"github.com/Dreamacro/clash/log"
 	"github.com/go-chi/chi/v5"
@@ -31,7 +32,7 @@ func getOtherInbounds(w http.ResponseWriter, r *http.Request) {
 }
 
 func addOtherInbounds(w http.ResponseWriter, r *http.Request) {
-	var params []map[string]any
+	var params []config.OtherInbound
 	err := render.DecodeJSON(r.Body, &params)
 	if err != nil {
 		log.Errorln(err.Error())

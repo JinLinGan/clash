@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/Dreamacro/clash/adapter"
+	"github.com/Dreamacro/clash/adapter/otherinbound"
 	"github.com/Dreamacro/clash/adapter/outbound"
 	"github.com/Dreamacro/clash/adapter/outboundgroup"
 	"github.com/Dreamacro/clash/adapter/provider"
@@ -149,18 +150,7 @@ type RawConfig struct {
 	Proxy         []map[string]any          `yaml:"proxies"`
 	ProxyGroup    []map[string]any          `yaml:"proxy-groups"`
 	Rule          []string                  `yaml:"rules"`
-
-	Inbounds []map[string]any `yaml:"inbounds"`
-}
-
-// OtherInbound 用来存储额外的inbound
-type OtherInbound struct {
-	Name     string `yaml:"name"`
-	Type     string `yaml:"type"`
-	Listen   string `yaml:"listen"`
-	Port     int    `yaml:"port"`
-	Username string `yaml:"username"`
-	Password string `yaml:"password"`
+	Inbounds      []OtherInbound            `yaml:"inbounds"`
 }
 
 // Parse config
@@ -207,7 +197,6 @@ func UnmarshalRawConfig(buf []byte) (*RawConfig, error) {
 	if err := yaml.Unmarshal(buf, rawCfg); err != nil {
 		return nil, err
 	}
-
 	return rawCfg, nil
 }
 
@@ -261,46 +250,36 @@ func ParseRawConfig(rawCfg *RawConfig) (*Config, error) {
 	return config, nil
 }
 
-func ParseInbounds(cfg []map[string]any) (map[string]C.OtherInbound, error) {
-	inbounds := make(map[string]C.OtherInbound)
+func ParseInbounds(cfg []OtherInbound) (map[string]C.OtherInbound, error) {
+	var (
+		result = make(map[string]C.OtherInbound)
+		err    error
+	)
 
-	var err error
-
-	for _, inbound := range cfg {
-		name, ok := inbound["name"].(string)
-		if !ok {
-			err = errors.New("inbound name is empty")
-			break
-		}
-		if _, ok := inbounds[name]; ok {
-			err = fmt.Errorf("duplicated inbound name %s", name)
-			break
-		}
-
-		if _, ok := inbound["type"].(string); !ok {
-			err = errors.New("inbound type is empty")
-			break
-		}
-
+	for _, c := range cfg {
 		var i C.OtherInbound
-		i, err = adapter.ParseInbound(inbound, T.TCPIn(), T.UDPIn())
-
+		switch c.Type {
+		case HTTPInbound:
+			i, err = otherinbound.NewHttp(c.HttpOption, T.TCPIn())
+		case SOCKSInbound:
+			i, err = otherinbound.NewSocks(c.SocksOption, T.TCPIn(), T.UDPIn())
+		case DIRECTInbound:
+			i, err = otherinbound.NewDirect(c.DirectOption, T.TCPIn(), T.UDPIn())
+		default:
+			err = errors.New("unknown inboundType: " + c.Type.String())
+		}
 		if err != nil {
 			break
 		}
-		inbounds[name] = i
-
+		result[i.Name()] = i
 	}
-
-	// 停止所有inbound
 	if err != nil {
-		for _, inbound := range inbounds {
+		for _, inbound := range result {
 			inbound.Close()
 		}
 		return nil, err
 	}
-
-	return inbounds, nil
+	return result, nil
 }
 
 func parseGeneral(cfg *RawConfig) (*General, error) {

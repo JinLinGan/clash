@@ -16,10 +16,8 @@ import (
 )
 
 type SocksOption struct {
-	Name   string `json:"name"`
-	Listen string `json:"listen"`
-	Port   int    `json:"port"`
-	Users  []User `json:"users,omitempty"`
+	BaseOption
+	Users []User `json:"users,omitempty"`
 }
 
 type Socks struct {

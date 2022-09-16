@@ -23,9 +23,7 @@ type Direct struct {
 }
 
 type DirectOption struct {
-	Name         string `json:"name"`
-	Listen       string `json:"listen"`
-	Port         int    `json:"port"`
+	BaseOption
 	RedirectAddr string `json:"redirect-addr"` // 重定向地址，把从监听地址收到的数据转发到这个地址
 }
 

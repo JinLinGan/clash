@@ -313,7 +313,7 @@ func SetOtherInbounds(inbounds map[string]C.OtherInbound) {
 	otherInbounds = inbounds
 }
 
-func AddOtherInbounds(params []map[string]any) (err error) {
+func AddOtherInbounds(params []config.OtherInbound) (err error) {
 	otherInboundsMux.Lock()
 	defer otherInboundsMux.Unlock()
 	check, err := config.ParseInbounds(params)

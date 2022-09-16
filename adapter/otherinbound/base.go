@@ -19,3 +19,10 @@ func (b Base) Type() constant.OtherInboundType {
 func (b Base) RawAddress() string {
 	return b.addr
 }
+
+type BaseOption struct {
+	Type   string `yaml:"type" json:"type"`
+	Name   string `yaml:"name" json:"name"`
+	Listen string `yaml:"listen" json:"listen"`
+	Port   int    `yaml:"port" json:"port"`
+}
