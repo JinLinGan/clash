@@ -32,7 +32,7 @@ var (
 	mixedListener     *mixed.Listener
 	mixedUDPLister    *socks.UDPListener
 
-	otherInbounds map[string]C.OtherInbound
+	otherInbounds = make(map[string]C.OtherInbound)
 
 	// lock for recreate function
 	socksMux  sync.Mutex
