@@ -121,13 +121,11 @@ func (u *URLTest) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func parseURLTestOption(config map[string]any) []urlTestOption {
+func parseURLTestOption(tolerance int) []urlTestOption {
 	opts := []urlTestOption{}
 
 	// tolerance
-	if tolerance, ok := config["tolerance"].(int); ok {
-		opts = append(opts, urlTestWithTolerance(uint16(tolerance)))
-	}
+	opts = append(opts, urlTestWithTolerance(uint16(tolerance)))
 
 	return opts
 }

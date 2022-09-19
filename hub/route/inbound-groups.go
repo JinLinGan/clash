@@ -3,8 +3,8 @@ package route
 import (
 	"net/http"
 
-	"github.com/Dreamacro/clash/tunnel"
-
+	"github.com/Dreamacro/clash/adapter/outboundgroup"
+	"github.com/Dreamacro/clash/controller"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 )
@@ -18,14 +18,14 @@ func outboundGroups() http.Handler {
 }
 
 func addOutboudGroups(w http.ResponseWriter, r *http.Request) {
-	var params []map[string]any
+	var params []outboundgroup.GroupCommonOption
 	err := render.DecodeJSON(r.Body, &params)
 	if err != nil {
 		render.Status(r, http.StatusBadRequest)
 		render.JSON(w, r, newError(err.Error()))
 		return
 	}
-	err = tunnel.AddOutboundGroups(params)
+	err = controller.AddProxyGroups(params)
 	if err != nil {
 		render.Status(r, http.StatusBadRequest)
 		render.JSON(w, r, newError(err.Error()))

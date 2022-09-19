@@ -33,21 +33,21 @@ type Vmess struct {
 
 type VmessOption struct {
 	BasicOption
-	Name           string       `proxy:"name"`
-	Server         string       `proxy:"server"`
-	Port           int          `proxy:"port"`
-	UUID           string       `proxy:"uuid"`
-	AlterID        int          `proxy:"alterId"`
-	Cipher         string       `proxy:"cipher"`
-	UDP            bool         `proxy:"udp,omitempty"`
-	Network        string       `proxy:"network,omitempty"`
-	TLS            bool         `proxy:"tls,omitempty"`
-	SkipCertVerify bool         `proxy:"skip-cert-verify,omitempty"`
-	ServerName     string       `proxy:"servername,omitempty"`
-	HTTPOpts       HTTPOptions  `proxy:"http-opts,omitempty"`
-	HTTP2Opts      HTTP2Options `proxy:"h2-opts,omitempty"`
-	GrpcOpts       GrpcOptions  `proxy:"grpc-opts,omitempty"`
-	WSOpts         WSOptions    `proxy:"ws-opts,omitempty"`
+	Name           string       `proxy:"name" json:"name"`
+	Server         string       `proxy:"server" json:"server"`
+	Port           int          `proxy:"port" json:"port"`
+	UUID           string       `proxy:"uuid" json:"uuid"`
+	AlterID        int          `proxy:"alterId" json:"alterId"`
+	Cipher         string       `proxy:"cipher" json:"cipher"`
+	UDP            bool         `proxy:"udp,omitempty" json:"udp,omitempty"`
+	Network        string       `proxy:"network,omitempty" json:"network,omitempty"`
+	TLS            bool         `proxy:"tls,omitempty" json:"tls,omitempty"`
+	SkipCertVerify bool         `proxy:"skip-cert-verify,omitempty" json:"skip-cert-verify,omitempty"`
+	ServerName     string       `proxy:"servername,omitempty" json:"servername,omitempty"`
+	HTTPOpts       HTTPOptions  `proxy:"http-opts,omitempty" json:"http-opts,omitempty"`
+	HTTP2Opts      HTTP2Options `proxy:"h2-opts,omitempty" json:"h2-opts,omitempty"`
+	GrpcOpts       GrpcOptions  `proxy:"grpc-opts,omitempty" json:"grpc-opts,omitempty"`
+	WSOpts         WSOptions    `proxy:"ws-opts,omitempty" json:"ws-opts,omitempty"`
 }
 
 type HTTPOptions struct {

@@ -26,14 +26,14 @@ type Http struct {
 
 type HttpOption struct {
 	BasicOption
-	Name           string `proxy:"name"`
-	Server         string `proxy:"server"`
-	Port           int    `proxy:"port"`
-	UserName       string `proxy:"username,omitempty"`
-	Password       string `proxy:"password,omitempty"`
-	TLS            bool   `proxy:"tls,omitempty"`
-	SNI            string `proxy:"sni,omitempty"`
-	SkipCertVerify bool   `proxy:"skip-cert-verify,omitempty"`
+	Name           string `proxy:"name" json:"name"`
+	Server         string `proxy:"server" json:"server"`
+	Port           int    `proxy:"port" json:"port"`
+	UserName       string `proxy:"username,omitempty" json:"username,omitempty"`
+	Password       string `proxy:"password,omitempty" json:"password,omitempty"`
+	TLS            bool   `proxy:"tls,omitempty" json:"tls,omitempty"`
+	SNI            string `proxy:"sni,omitempty" json:"sni,omitempty"`
+	SkipCertVerify bool   `proxy:"skip-cert-verify,omitempty" json:"skip-cert-verify,omitempty"`
 }
 
 // StreamConn implements C.ProxyAdapter

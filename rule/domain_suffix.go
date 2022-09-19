@@ -12,7 +12,7 @@ type DomainSuffix struct {
 }
 
 func (ds *DomainSuffix) RuleType() C.RuleType {
-	return C.DomainSuffix
+	return C.RuleTypeDomainSuffix
 }
 
 func (ds *DomainSuffix) Match(metadata *C.Metadata) bool {

@@ -29,8 +29,10 @@ func (p *ProxyConfig) MarshalJSON() ([]byte, error) {
 	switch p.Type {
 	case C.ProxyTypeHttp:
 		v = &p.HttpOption
-	case C.ProxyTypeShadowSocks, C.ProxyTypeShadowSocksR:
+	case C.ProxyTypeShadowSocks:
 		v = &p.ShadowSocksOption
+	case C.ProxyTypeShadowSocksR:
+		v = &p.ShadowSocksROption
 	case C.ProxyTypeSnell:
 		v = &p.SnellOption
 	case C.ProxyTypeSocks5:
@@ -54,8 +56,10 @@ func (p *ProxyConfig) UnmarshalJSON(b []byte) error {
 	switch p.Type {
 	case C.ProxyTypeHttp:
 		v = &p.HttpOption
-	case C.ProxyTypeShadowSocks, C.ProxyTypeShadowSocksR:
+	case C.ProxyTypeShadowSocks:
 		v = &p.ShadowSocksOption
+	case C.ProxyTypeShadowSocksR:
+		v = &p.ShadowSocksROption
 	case C.ProxyTypeSnell:
 		v = &p.SnellOption
 	case C.ProxyTypeSocks5:

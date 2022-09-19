@@ -70,7 +70,7 @@ func Start(addr string, secret string) {
 		r.Mount("/rules", ruleRouter())
 		r.Mount("/connections", connectionRouter())
 		r.Mount("/providers/proxies", proxyProviderRouter())
-		r.Mount("/inbounds", otherInbounds())
+		r.Mount("/inbounds", inbounds())
 		r.Mount("/outbounds", outbounds())
 		r.Mount("/outboundgroups", outboundGroups())
 	})

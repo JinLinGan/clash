@@ -12,7 +12,7 @@ type DomainKeyword struct {
 }
 
 func (dk *DomainKeyword) RuleType() C.RuleType {
-	return C.DomainKeyword
+	return C.RuleTypeDomainKeyword
 }
 
 func (dk *DomainKeyword) Match(metadata *C.Metadata) bool {

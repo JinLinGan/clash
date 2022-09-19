@@ -6,38 +6,38 @@ import (
 	C "github.com/Dreamacro/clash/constant"
 )
 
-func ParseRule(tp, payload, target string, params []string) (C.Rule, error) {
+func ParseRule(tp C.RuleType, payload, target string, params []string) (C.Rule, error) {
 	var (
 		parseErr error
 		parsed   C.Rule
 	)
 
 	switch tp {
-	case "DOMAIN":
+	case C.RuleTypeDomain:
 		parsed = NewDomain(payload, target)
-	case "DOMAIN-SUFFIX":
+	case C.RuleTypeDomainSuffix:
 		parsed = NewDomainSuffix(payload, target)
-	case "DOMAIN-KEYWORD":
+	case C.RuleTypeDomainKeyword:
 		parsed = NewDomainKeyword(payload, target)
-	case "GEOIP":
+	case C.RuleTypeGEOIP:
 		noResolve := HasNoResolve(params)
 		parsed = NewGEOIP(payload, target, noResolve)
-	case "IP-CIDR", "IP-CIDR6":
+	case C.RuleTypeIPCIDR:
 		noResolve := HasNoResolve(params)
 		parsed, parseErr = NewIPCIDR(payload, target, WithIPCIDRNoResolve(noResolve))
-	case "SRC-IP-CIDR":
+	case C.RuleTypeSrcIPCIDR:
 		parsed, parseErr = NewIPCIDR(payload, target, WithIPCIDRSourceIP(true), WithIPCIDRNoResolve(true))
-	case "SRC-PORT":
+	case C.RuleTypeSrcPort:
 		parsed, parseErr = NewPort(payload, target, true)
-	case "DST-PORT":
+	case C.RuleTypeDstPort:
 		parsed, parseErr = NewPort(payload, target, false)
-	case "PROCESS-NAME":
+	case C.RuleTypeProcess:
 		parsed, parseErr = NewProcess(payload, target, true)
-	case "PROCESS-PATH":
+	case C.RuleTypeProcessPath:
 		parsed, parseErr = NewProcess(payload, target, false)
-	case "MATCH":
+	case C.RuleTypeMATCH:
 		parsed = NewMatch(target)
-	case "Inbound":
+	case C.RuleTypeInbound:
 		parsed = NewInbound(payload, target)
 	default:
 		parseErr = fmt.Errorf("unsupported rule type %s", tp)

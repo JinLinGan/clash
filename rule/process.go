@@ -15,10 +15,10 @@ type Process struct {
 
 func (ps *Process) RuleType() C.RuleType {
 	if ps.nameOnly {
-		return C.Process
+		return C.RuleTypeProcess
 	}
 
-	return C.ProcessPath
+	return C.RuleTypeProcessPath
 }
 
 func (ps *Process) Match(metadata *C.Metadata) bool {

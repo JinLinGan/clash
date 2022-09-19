@@ -29,17 +29,17 @@ type Trojan struct {
 
 type TrojanOption struct {
 	BasicOption
-	Name           string      `proxy:"name"`
-	Server         string      `proxy:"server"`
-	Port           int         `proxy:"port"`
-	Password       string      `proxy:"password"`
-	ALPN           []string    `proxy:"alpn,omitempty"`
-	SNI            string      `proxy:"sni,omitempty"`
-	SkipCertVerify bool        `proxy:"skip-cert-verify,omitempty"`
-	UDP            bool        `proxy:"udp,omitempty"`
-	Network        string      `proxy:"network,omitempty"`
-	GrpcOpts       GrpcOptions `proxy:"grpc-opts,omitempty"`
-	WSOpts         WSOptions   `proxy:"ws-opts,omitempty"`
+	Name           string      `proxy:"name" json:"name"`
+	Server         string      `proxy:"server" json:"server"`
+	Port           int         `proxy:"port" json:"port"`
+	Password       string      `proxy:"password" json:"password"`
+	ALPN           []string    `proxy:"alpn,omitempty" json:"alpn,omitempty"`
+	SNI            string      `proxy:"sni,omitempty" json:"sni,omitempty"`
+	SkipCertVerify bool        `proxy:"skip-cert-verify,omitempty" json:"skip-cert-verify,omitempty"`
+	UDP            bool        `proxy:"udp,omitempty" json:"udp,omitempty"`
+	Network        string      `proxy:"network,omitempty" json:"network,omitempty"`
+	GrpcOpts       GrpcOptions `proxy:"grpc-opts,omitempty" json:"grpc-opts,omitempty"`
+	WSOpts         WSOptions   `proxy:"ws-opts,omitempty" json:"ws-opts,omitempty"`
 }
 
 func (t *Trojan) plainStream(c net.Conn) (net.Conn, error) {

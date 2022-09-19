@@ -29,9 +29,9 @@ type IPCIDR struct {
 
 func (i *IPCIDR) RuleType() C.RuleType {
 	if i.isSourceIP {
-		return C.SrcIPCIDR
+		return C.RuleTypeSrcIPCIDR
 	}
-	return C.IPCIDR
+	return C.RuleTypeIPCIDR
 }
 
 func (i *IPCIDR) Match(metadata *C.Metadata) bool {

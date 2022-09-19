@@ -32,7 +32,7 @@ var (
 	mixedListener     *mixed.Listener
 	mixedUDPLister    *socks.UDPListener
 
-	otherInbounds = make(map[string]C.OtherInbound)
+	globalInbounds = make(map[string]C.Inbound)
 
 	// lock for recreate function
 	socksMux  sync.Mutex
@@ -41,7 +41,7 @@ var (
 	tproxyMux sync.Mutex
 	mixedMux  sync.Mutex
 
-	otherInboundsMux sync.RWMutex
+	inboundsMux sync.RWMutex
 )
 
 type Ports struct {
@@ -307,15 +307,15 @@ func ReCreateMixed(port int, tcpIn chan<- C.ConnContext, udpIn chan<- *defaultin
 	log.Infoln("Mixed(http+socks) proxy listening at: %s", mixedListener.Address())
 }
 
-func SetOtherInbounds(inbounds map[string]C.OtherInbound) {
-	otherInboundsMux.Lock()
-	defer otherInboundsMux.Unlock()
-	otherInbounds = inbounds
+func SetInbounds(inbounds map[string]C.Inbound) {
+	inboundsMux.Lock()
+	defer inboundsMux.Unlock()
+	globalInbounds = inbounds
 }
 
-func AddOtherInbounds(params []config.InboundConfig) (err error) {
-	otherInboundsMux.Lock()
-	defer otherInboundsMux.Unlock()
+func AddInbounds(params []config.InboundConfig) (err error) {
+	inboundsMux.Lock()
+	defer inboundsMux.Unlock()
 	check, err := config.ParseInbounds(params)
 	if err != nil {
 		return err
@@ -323,7 +323,7 @@ func AddOtherInbounds(params []config.InboundConfig) (err error) {
 
 	// 检查是否有重名
 	for name := range check {
-		if _, ok := otherInbounds[name]; ok {
+		if _, ok := globalInbounds[name]; ok {
 			// 发现一个重名就关闭所有inbound
 			for _, i := range check {
 				i.Close()
@@ -334,25 +334,25 @@ func AddOtherInbounds(params []config.InboundConfig) (err error) {
 
 	// 3.检查成功,保存inbound
 	for name, i := range check {
-		otherInbounds[name] = i
+		globalInbounds[name] = i
 	}
 	return
 }
 
-func GetOtherInbounds() map[string]C.OtherInbound {
-	otherInboundsMux.RLock()
-	defer otherInboundsMux.RUnlock()
-	return otherInbounds
+func GetInbounds() map[string]C.Inbound {
+	inboundsMux.RLock()
+	defer inboundsMux.RUnlock()
+	return globalInbounds
 }
 
-func DeleteOtherInbound(names []string) {
-	otherInboundsMux.Lock()
-	defer otherInboundsMux.Unlock()
+func DeleteInbounds(names []string) {
+	inboundsMux.Lock()
+	defer inboundsMux.Unlock()
 
 	for _, name := range names {
-		if inbound, ok := otherInbounds[name]; ok {
+		if inbound, ok := globalInbounds[name]; ok {
 			inbound.Close()
-			delete(otherInbounds, name)
+			delete(globalInbounds, name)
 		}
 	}
 }

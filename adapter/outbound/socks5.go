@@ -25,14 +25,14 @@ type Socks5 struct {
 
 type Socks5Option struct {
 	BasicOption
-	Name           string `proxy:"name"`
-	Server         string `proxy:"server"`
-	Port           int    `proxy:"port"`
-	UserName       string `proxy:"username,omitempty"`
-	Password       string `proxy:"password,omitempty"`
-	TLS            bool   `proxy:"tls,omitempty"`
-	UDP            bool   `proxy:"udp,omitempty"`
-	SkipCertVerify bool   `proxy:"skip-cert-verify,omitempty"`
+	Name           string `proxy:"name" json:"name"`
+	Server         string `proxy:"server" json:"server"`
+	Port           int    `proxy:"port" json:"port"`
+	UserName       string `proxy:"username,omitempty" json:"username,omitempty"`
+	Password       string `proxy:"password,omitempty" json:"password,omitempty"`
+	TLS            bool   `proxy:"tls,omitempty" json:"tls,omitempty"`
+	UDP            bool   `proxy:"udp,omitempty" json:"udp,omitempty"`
+	SkipCertVerify bool   `proxy:"skip-cert-verify,omitempty" json:"skip-cert-verify,omitempty"`
 }
 
 // StreamConn implements C.ProxyAdapter

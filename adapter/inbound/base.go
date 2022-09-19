@@ -19,3 +19,7 @@ func (b Base) Type() C.InboundType {
 func (b Base) RawAddress() string {
 	return b.addr
 }
+
+func (b Base) NewMetadata() {
+
+}

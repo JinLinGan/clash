@@ -101,7 +101,7 @@ type Config struct {
 	Proxies      map[string]C.Proxy
 	Providers    map[string]providerTypes.ProxyProvider
 
-	Inbounds map[string]C.OtherInbound
+	Inbounds map[string]C.Inbound
 }
 
 type RawDNS struct {
@@ -144,15 +144,15 @@ type RawConfig struct {
 	Interface          string       `yaml:"interface-name"`
 	RoutingMark        int          `yaml:"routing-mark"`
 
-	ProxyProvider map[string]map[string]any `yaml:"proxy-providers"`
-	Hosts         map[string]string         `yaml:"hosts"`
-	DNS           RawDNS                    `yaml:"dns"`
-	Experimental  Experimental              `yaml:"experimental"`
-	Profile       Profile                   `yaml:"profile"`
-	Proxy         []ProxyConfig             `yaml:"proxies"`
-	ProxyGroup    []map[string]any          `yaml:"proxy-groups"`
-	Rule          []string                  `yaml:"rules"`
-	Inbounds      []InboundConfig           `yaml:"inbounds"`
+	ProxyProvider map[string]map[string]any         `yaml:"proxy-providers"`
+	Hosts         map[string]string                 `yaml:"hosts"`
+	DNS           RawDNS                            `yaml:"dns"`
+	Experimental  Experimental                      `yaml:"experimental"`
+	Profile       Profile                           `yaml:"profile"`
+	Proxy         []ProxyConfig                     `yaml:"proxies"`
+	ProxyGroup    []outboundgroup.GroupCommonOption `yaml:"proxy-groups"`
+	Rule          []RuleConfig                      `yaml:"rules"`
+	Inbounds      []InboundConfig                   `yaml:"inbounds"`
 }
 
 // Parse config
@@ -174,9 +174,9 @@ func UnmarshalRawConfig(buf []byte) (*RawConfig, error) {
 		Authentication: []string{},
 		LogLevel:       log.INFO,
 		Hosts:          map[string]string{},
-		Rule:           []string{},
+		Rule:           []RuleConfig{},
 		Proxy:          []ProxyConfig{},
-		ProxyGroup:     []map[string]any{},
+		ProxyGroup:     []outboundgroup.GroupCommonOption{},
 		DNS: RawDNS{
 			Enable:      false,
 			UseHosts:    true,
@@ -221,7 +221,7 @@ func ParseRawConfig(rawCfg *RawConfig) (*Config, error) {
 	config.Proxies = proxies
 	config.Providers = providers
 
-	rules, err := parseRules(rawCfg, proxies)
+	rules, err := ParseRules(rawCfg.Rule, proxies)
 	if err != nil {
 		return nil, err
 	}
@@ -252,14 +252,14 @@ func ParseRawConfig(rawCfg *RawConfig) (*Config, error) {
 	return config, nil
 }
 
-func ParseInbounds(cfg []InboundConfig) (map[string]C.OtherInbound, error) {
+func ParseInbounds(cfg []InboundConfig) (map[string]C.Inbound, error) {
 	var (
-		result = make(map[string]C.OtherInbound)
+		result = make(map[string]C.Inbound)
 		err    error
 	)
 
 	for _, c := range cfg {
-		var i C.OtherInbound
+		var i C.Inbound
 		switch c.Type {
 		case C.HTTPInbound:
 			i, err = inbound.NewHttp(c.HttpOption, c.Name, T.TCPIn())
@@ -353,16 +353,15 @@ func parseProxies(cfg *RawConfig) (proxies map[string]C.Proxy, providersMap map[
 	}
 
 	// keep the original order of ProxyGroups in config file
-	for idx, mapping := range groupsConfig {
-		groupName, existName := mapping["name"].(string)
-		if !existName {
+	for idx, groupConf := range groupsConfig {
+		if groupConf.Name == "" {
 			return nil, nil, fmt.Errorf("proxy group %d: missing name", idx)
 		}
-		proxyList = append(proxyList, groupName)
+		proxyList = append(proxyList, groupConf.Name)
 	}
 
 	// check if any loop exists and sort the ProxyGroups
-	if err := proxyGroupsDagSort(groupsConfig); err != nil {
+	if err := ProxyGroupsDagSort(groupsConfig); err != nil {
 		return nil, nil, err
 	}
 
@@ -388,8 +387,8 @@ func parseProxies(cfg *RawConfig) (proxies map[string]C.Proxy, providersMap map[
 	}
 
 	// parse proxy group
-	for idx, mapping := range groupsConfig {
-		group, err := outboundgroup.ParseProxyGroup(mapping, proxies, providersMap)
+	for idx, conf := range groupsConfig {
+		group, err := outboundgroup.ParseProxyGroup(conf, proxies, providersMap)
 		if err != nil {
 			return nil, nil, fmt.Errorf("proxy group[%d]: %w", idx, err)
 		}
@@ -432,43 +431,18 @@ func parseProxies(cfg *RawConfig) (proxies map[string]C.Proxy, providersMap map[
 	return proxies, providersMap, nil
 }
 
-func parseRules(cfg *RawConfig, proxies map[string]C.Proxy) ([]C.Rule, error) {
+func ParseRules(rulesConfig []RuleConfig, proxies map[string]C.Proxy) ([]C.Rule, error) {
 	var rules []C.Rule
-	rulesConfig := cfg.Rule
 
 	// parse rules
-	for idx, line := range rulesConfig {
-		rule := trimArr(strings.Split(line, ","))
-		var (
-			payload string
-			target  string
-			params  []string
-		)
-
-		switch l := len(rule); {
-		case l == 2:
-			target = rule[1]
-		case l == 3:
-			payload = rule[1]
-			target = rule[2]
-		case l >= 4:
-			payload = rule[1]
-			target = rule[2]
-			params = rule[3:]
-		default:
-			return nil, fmt.Errorf("rules[%d] [%s] error: format invalid", idx, line)
+	for idx, rule := range rulesConfig {
+		if _, ok := proxies[rule.Target]; !ok {
+			return nil, fmt.Errorf("rules[%d] [%s] error: proxy [%s] not found", idx, rule.String(), rule.Target)
 		}
 
-		if _, ok := proxies[target]; !ok {
-			return nil, fmt.Errorf("rules[%d] [%s] error: proxy [%s] not found", idx, line, target)
-		}
-
-		rule = trimArr(rule)
-		params = trimArr(params)
-
-		parsed, parseErr := R.ParseRule(rule[0], payload, target, params)
+		parsed, parseErr := R.ParseRule(rule.RuleType, rule.Payload, rule.Target, rule.Params)
 		if parseErr != nil {
-			return nil, fmt.Errorf("rules[%d] [%s] error: %s", idx, line, parseErr.Error())
+			return nil, fmt.Errorf("rules[%d] [%s] error: %s", idx, rule.String(), parseErr.Error())
 		}
 
 		rules = append(rules, parsed)
@@ -721,6 +695,7 @@ func ParseProxy(p ProxyConfig) (C.Proxy, error) {
 	}
 
 	if err != nil {
+		log.Infoln("%+v", p.ShadowSocksROption)
 		return nil, err
 	}
 

@@ -4,23 +4,22 @@ import (
 	"net/http"
 
 	"github.com/Dreamacro/clash/config"
-	P "github.com/Dreamacro/clash/listener"
-	"github.com/Dreamacro/clash/log"
+	"github.com/Dreamacro/clash/controller"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 )
 
-func otherInbounds() http.Handler {
+func inbounds() http.Handler {
 	r := chi.NewRouter()
-	r.Get("/", getOtherInbounds)
-	r.Post("/", addOtherInbounds)
-	r.Delete("/", deleteOtherInbounds)
+	r.Get("/", getInbounds)
+	r.Post("/", addInbounds)
+	r.Delete("/", deleteInbounds)
 	return r
 }
 
-func getOtherInbounds(w http.ResponseWriter, r *http.Request) {
-	inbounds := P.GetOtherInbounds()
+func getInbounds(w http.ResponseWriter, r *http.Request) {
+	inbounds := controller.GetInbounds()
 	var result []map[string]interface{}
 	for _, inbound := range inbounds {
 		result = append(result, map[string]interface{}{
@@ -32,16 +31,15 @@ func getOtherInbounds(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, r, result)
 }
 
-func addOtherInbounds(w http.ResponseWriter, r *http.Request) {
+func addInbounds(w http.ResponseWriter, r *http.Request) {
 	var params []config.InboundConfig
 	err := render.DecodeJSON(r.Body, &params)
 	if err != nil {
-		log.Errorln(err.Error())
 		render.Status(r, http.StatusBadRequest)
-		render.JSON(w, r, ErrBadRequest)
+		render.JSON(w, r, newError(err.Error()))
 		return
 	}
-	err = P.AddOtherInbounds(params)
+	err = controller.AddInbounds(params)
 	if err != nil {
 		render.Status(r, http.StatusBadRequest)
 		render.JSON(w, r, newError(err.Error()))
@@ -50,14 +48,14 @@ func addOtherInbounds(w http.ResponseWriter, r *http.Request) {
 	render.NoContent(w, r)
 }
 
-func deleteOtherInbounds(w http.ResponseWriter, r *http.Request) {
+func deleteInbounds(w http.ResponseWriter, r *http.Request) {
 	var params []string
 	err := render.DecodeJSON(r.Body, &params)
 	if err != nil {
 		render.Status(r, http.StatusBadRequest)
-		render.JSON(w, r, ErrBadRequest)
+		render.JSON(w, r, newError(err.Error()))
 		return
 	}
-	P.DeleteOtherInbound(params)
+	controller.DeleteInbounds(params)
 	render.NoContent(w, r)
 }

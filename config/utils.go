@@ -6,8 +6,6 @@ import (
 	"strings"
 
 	"github.com/Dreamacro/clash/adapter/outboundgroup"
-	"github.com/Dreamacro/clash/common/structure"
-
 	"gopkg.in/yaml.v3"
 )
 
@@ -21,45 +19,35 @@ func trimArr(arr []string) (r []string) {
 // Check if ProxyGroups form DAG(Directed Acyclic Graph), and sort all ProxyGroups by dependency order.
 // Meanwhile, record the original index in the config file.
 // If loop is detected, return an error with location of loop.
-func proxyGroupsDagSort(groupsConfig []map[string]any) error {
+func ProxyGroupsDagSort(groupsConfig []outboundgroup.GroupCommonOption) error {
 	type graphNode struct {
 		indegree int
 		// topological order
 		topo int
-		// the original data in `groupsConfig`
-		data map[string]any
 		// `outdegree` and `from` are used in loop locating
 		outdegree int
 		option    *outboundgroup.GroupCommonOption
 		from      []string
 	}
 
-	decoder := structure.NewDecoder(structure.Option{TagName: "group", WeaklyTypedInput: true})
 	graph := make(map[string]*graphNode)
 
 	// Step 1.1 build dependency graph
-	for _, mapping := range groupsConfig {
-		option := &outboundgroup.GroupCommonOption{}
-		if err := decoder.Decode(mapping, option); err != nil {
-			return fmt.Errorf("ProxyGroup %s: %s", option.Name, err.Error())
-		}
-
+	for _, option := range groupsConfig {
 		groupName := option.Name
 		if node, ok := graph[groupName]; ok {
-			if node.data != nil {
-				return fmt.Errorf("ProxyGroup %s: duplicate group name", groupName)
-			}
-			node.data = mapping
-			node.option = option
+			opt := option
+			node.option = &opt
 		} else {
-			graph[groupName] = &graphNode{0, -1, mapping, 0, option, nil}
+			opt := option
+			graph[groupName] = &graphNode{0, -1, 0, &opt, nil}
 		}
 
 		for _, proxy := range option.Proxies {
 			if node, ex := graph[proxy]; ex {
 				node.indegree++
 			} else {
-				graph[proxy] = &graphNode{1, -1, nil, 0, nil, nil}
+				graph[proxy] = &graphNode{1, -1, 0, nil, nil}
 			}
 		}
 	}
@@ -79,7 +67,7 @@ func proxyGroupsDagSort(groupsConfig []map[string]any) error {
 		node := graph[name]
 		if node.option != nil {
 			index++
-			groupsConfig[len(groupsConfig)-index] = node.data
+			groupsConfig[len(groupsConfig)-index] = *node.option
 			if len(node.option.Proxies) == 0 {
 				delete(graph, name)
 				continue
@@ -150,7 +138,7 @@ func proxyGroupsDagSort(groupsConfig []map[string]any) error {
 	return fmt.Errorf("loop is detected in ProxyGroup, please check following ProxyGroups: %v", loopElements)
 }
 
-// UnmarshalYAML 由于底层只支持 json 转换，先将配置文件转换为json，再调用json.Unmarshal
+// UnmarshalYAML 由于底层只支持 json 转换，先将配置文件转换为json，再调用json.Unmarshal 注:配置(node)必须是一个map[string]any(结构体)
 func UnmarshalYAML(node *yaml.Node, v any) error {
 	b, err := YamlNodeToJSON(node)
 	if err != nil {

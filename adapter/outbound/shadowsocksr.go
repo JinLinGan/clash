@@ -24,16 +24,16 @@ type ShadowSocksR struct {
 
 type ShadowSocksROption struct {
 	BasicOption
-	Name          string `proxy:"name"`
-	Server        string `proxy:"server"`
-	Port          int    `proxy:"port"`
-	Password      string `proxy:"password"`
-	Cipher        string `proxy:"cipher"`
-	Obfs          string `proxy:"obfs"`
-	ObfsParam     string `proxy:"obfs-param,omitempty"`
-	Protocol      string `proxy:"protocol"`
-	ProtocolParam string `proxy:"protocol-param,omitempty"`
-	UDP           bool   `proxy:"udp,omitempty"`
+	Name          string `proxy:"name" json:"name"`
+	Server        string `proxy:"server" json:"server"`
+	Port          int    `proxy:"port" json:"port"`
+	Password      string `proxy:"password" json:"password"`
+	Cipher        string `proxy:"cipher" json:"cipher"`
+	Obfs          string `proxy:"obfs" json:"obfs"`
+	ObfsParam     string `proxy:"obfs-param,omitempty" json:"obfs-param,omitempty"`
+	Protocol      string `proxy:"protocol" json:"protocol"`
+	ProtocolParam string `proxy:"protocol-param,omitempty" json:"protocol-param,omitempty"`
+	UDP           bool   `proxy:"udp,omitempty" json:"udp,omitempty"`
 }
 
 // StreamConn implements C.ProxyAdapter

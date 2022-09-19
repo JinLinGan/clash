@@ -6,7 +6,6 @@ import (
 
 	"github.com/Dreamacro/clash/adapter/outbound"
 	"github.com/Dreamacro/clash/adapter/provider"
-	"github.com/Dreamacro/clash/common/structure"
 	C "github.com/Dreamacro/clash/constant"
 	types "github.com/Dreamacro/clash/constant/provider"
 )
@@ -21,40 +20,33 @@ var (
 
 type GroupCommonOption struct {
 	outbound.BasicOption
-	Name       string   `group:"name"`
-	Type       string   `group:"type"`
-	Proxies    []string `group:"proxies,omitempty"`
-	Use        []string `group:"use,omitempty"`
-	URL        string   `group:"url,omitempty"`
-	Interval   int      `group:"interval,omitempty"`
-	Lazy       bool     `group:"lazy,omitempty"`
-	DisableUDP bool     `group:"disable-udp,omitempty"`
+	Name       string   `json:"name" yaml:"name"`
+	Type       string   `json:"type" yaml:"type"`
+	Proxies    []string `json:"proxies,omitempty" yaml:"proxies,omitempty"`
+	Use        []string `json:"use,omitempty" yaml:"use,omitempty"`
+	URL        string   `json:"url,omitempty" yaml:"url,omitempty"`
+	Interval   int      `json:"interval,omitempty" yaml:"interval,omitempty"`
+	Lazy       bool     `json:"lazy,omitempty" default:"true" yaml:"lazy,omitempty"`
+	DisableUDP bool     `json:"disable-udp,omitempty" yaml:"disable-udp,omitempty"`
+	Tolerance  int      `json:"tolerance,omitempty" yaml:"tolerance,omitempty"`
+	Strategy   string   `json:"strategy,omitempty" yaml:"strategy,omitempty"`
 }
 
-func ParseProxyGroup(config map[string]any, proxyMap map[string]C.Proxy, providersMap map[string]types.ProxyProvider) (C.ProxyAdapter, error) {
-	decoder := structure.NewDecoder(structure.Option{TagName: "group", WeaklyTypedInput: true})
-
-	groupOption := &GroupCommonOption{
-		Lazy: true,
-	}
-	if err := decoder.Decode(config, groupOption); err != nil {
+func ParseProxyGroup(config GroupCommonOption, proxyMap map[string]C.Proxy, providersMap map[string]types.ProxyProvider) (C.ProxyAdapter, error) {
+	if config.Type == "" || config.Name == "" {
 		return nil, errFormat
 	}
 
-	if groupOption.Type == "" || groupOption.Name == "" {
-		return nil, errFormat
-	}
-
-	groupName := groupOption.Name
+	groupName := config.Name
 
 	providers := []types.ProxyProvider{}
 
-	if len(groupOption.Proxies) == 0 && len(groupOption.Use) == 0 {
+	if len(config.Proxies) == 0 && len(config.Use) == 0 {
 		return nil, errMissProxy
 	}
 
-	if len(groupOption.Proxies) != 0 {
-		ps, err := getProxies(proxyMap, groupOption.Proxies)
+	if len(config.Proxies) != 0 {
+		ps, err := getProxies(proxyMap, config.Proxies)
 		if err != nil {
 			return nil, err
 		}
@@ -64,7 +56,7 @@ func ParseProxyGroup(config map[string]any, proxyMap map[string]C.Proxy, provide
 		}
 
 		// select don't need health check
-		if groupOption.Type == "select" || groupOption.Type == "relay" {
+		if config.Type == "select" || config.Type == "relay" {
 			hc := provider.NewHealthCheck(ps, "", 0, true)
 			pd, err := provider.NewCompatibleProvider(groupName, ps, hc)
 			if err != nil {
@@ -74,11 +66,11 @@ func ParseProxyGroup(config map[string]any, proxyMap map[string]C.Proxy, provide
 			providers = append(providers, pd)
 			providersMap[groupName] = pd
 		} else {
-			if groupOption.URL == "" || groupOption.Interval == 0 {
+			if config.URL == "" || config.Interval == 0 {
 				return nil, errMissHealthCheck
 			}
 
-			hc := provider.NewHealthCheck(ps, groupOption.URL, uint(groupOption.Interval), groupOption.Lazy)
+			hc := provider.NewHealthCheck(ps, config.URL, uint(config.Interval), config.Lazy)
 			pd, err := provider.NewCompatibleProvider(groupName, ps, hc)
 			if err != nil {
 				return nil, err
@@ -89,8 +81,8 @@ func ParseProxyGroup(config map[string]any, proxyMap map[string]C.Proxy, provide
 		}
 	}
 
-	if len(groupOption.Use) != 0 {
-		list, err := getProviders(providersMap, groupOption.Use)
+	if len(config.Use) != 0 {
+		list, err := getProviders(providersMap, config.Use)
 		if err != nil {
 			return nil, err
 		}
@@ -98,21 +90,21 @@ func ParseProxyGroup(config map[string]any, proxyMap map[string]C.Proxy, provide
 	}
 
 	var group C.ProxyAdapter
-	switch groupOption.Type {
+	switch config.Type {
 	case "url-test":
-		opts := parseURLTestOption(config)
-		group = NewURLTest(groupOption, providers, opts...)
+		opts := parseURLTestOption(config.Tolerance)
+		group = NewURLTest(&config, providers, opts...)
 	case "select":
-		group = NewSelector(groupOption, providers)
+		group = NewSelector(&config, providers)
 	case "fallback":
-		group = NewFallback(groupOption, providers)
+		group = NewFallback(&config, providers)
 	case "load-balance":
-		strategy := parseStrategy(config)
-		return NewLoadBalance(groupOption, providers, strategy)
+		strategy := parseStrategy(config.Strategy)
+		return NewLoadBalance(&config, providers, strategy)
 	case "relay":
-		group = NewRelay(groupOption, providers)
+		group = NewRelay(&config, providers)
 	default:
-		return nil, fmt.Errorf("%w: %s", errType, groupOption.Type)
+		return nil, fmt.Errorf("%w: %s", errType, config.Type)
 	}
 
 	return group, nil

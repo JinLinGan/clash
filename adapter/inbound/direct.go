@@ -85,6 +85,7 @@ func (s *Direct) NewRedirectTCP(conn net.Conn) *context.ConnContext {
 	meta := s.cacheMeta
 
 	meta.NetWork = C.TCP
+	meta.Inbound = C.Name
 
 	if ip, port, err := parseAddr(conn.RemoteAddr().String()); err == nil {
 		meta.SrcIP = ip

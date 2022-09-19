@@ -9,7 +9,7 @@ type Match struct {
 }
 
 func (f *Match) RuleType() C.RuleType {
-	return C.MATCH
+	return C.RuleTypeMATCH
 }
 
 func (f *Match) Match(metadata *C.Metadata) bool {

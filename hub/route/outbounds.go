@@ -4,8 +4,7 @@ import (
 	"net/http"
 
 	"github.com/Dreamacro/clash/config"
-	C "github.com/Dreamacro/clash/constant"
-	"github.com/Dreamacro/clash/tunnel"
+	"github.com/Dreamacro/clash/controller"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
@@ -20,7 +19,7 @@ func outbounds() http.Handler {
 }
 
 func getOutbounds(w http.ResponseWriter, r *http.Request) {
-	proxies := tunnel.Proxies()
+	proxies := controller.GetProxies()
 	render.JSON(w, r, render.M{
 		"proxies": proxies,
 	})
@@ -36,15 +35,7 @@ func addOutbounds(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var ps []C.Proxy
-
-	for _, param := range params {
-		if proxy, err := config.ParseProxy(param); err != nil {
-			ps = append(ps, proxy)
-		}
-	}
-
-	err = tunnel.AddOutbounds(ps)
+	err = controller.AddProxies(params)
 	if err != nil {
 		render.Status(r, http.StatusBadRequest)
 		render.JSON(w, r, newError(err.Error()))
@@ -61,6 +52,6 @@ func deleteOutbounds(w http.ResponseWriter, r *http.Request) {
 		render.JSON(w, r, newError(err.Error()))
 		return
 	}
-	tunnel.DeleteOutbounds(params)
+	controller.DeleteProxies(params)
 	render.NoContent(w, r)
 }

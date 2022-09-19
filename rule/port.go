@@ -14,9 +14,9 @@ type Port struct {
 
 func (p *Port) RuleType() C.RuleType {
 	if p.isSource {
-		return C.SrcPort
+		return C.RuleTypeSrcPort
 	}
-	return C.DstPort
+	return C.RuleTypeDstPort
 }
 
 func (p *Port) Match(metadata *C.Metadata) bool {

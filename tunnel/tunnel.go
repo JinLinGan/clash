@@ -467,16 +467,16 @@ func DeleteOutbounds(params []string) {
 	ReNewGlobalOutbound()
 }
 
-func AddOutboundGroups(params []map[string]any) (err error) {
+func AddOutboundGroups(params []outboundgroup.GroupCommonOption) (err error) {
 	configMux.Lock()
 	defer configMux.Unlock()
 	check := map[string]C.Proxy{}
 	for _, param := range params {
-		if param["name"].(string) == "" {
+		if param.Name == "" {
 			err = errors.New("proxy name required")
 			break
 		}
-		if _, ok := proxies[param["name"].(string)]; ok {
+		if _, ok := proxies[param.Name]; ok {
 			err = errors.New("proxy already exist")
 			break
 		}

@@ -1,6 +1,8 @@
 package rules
 
-import C "github.com/Dreamacro/clash/constant"
+import (
+	C "github.com/Dreamacro/clash/constant"
+)
 
 type Inbound struct {
 	inbound string
@@ -8,7 +10,7 @@ type Inbound struct {
 }
 
 func (i Inbound) RuleType() C.RuleType {
-	return C.Inbound
+	return C.RuleTypeInbound
 }
 
 func (i Inbound) Match(metadata *C.Metadata) bool {

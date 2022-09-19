@@ -28,14 +28,14 @@ type ShadowSocks struct {
 
 type ShadowSocksOption struct {
 	BasicOption
-	Name       string         `proxy:"name"`
-	Server     string         `proxy:"server"`
-	Port       int            `proxy:"port"`
-	Password   string         `proxy:"password"`
-	Cipher     string         `proxy:"cipher"`
-	UDP        bool           `proxy:"udp,omitempty"`
-	Plugin     string         `proxy:"plugin,omitempty"`
-	PluginOpts map[string]any `proxy:"plugin-opts,omitempty"`
+	Name       string         `proxy:"name" json:"name"`
+	Server     string         `proxy:"server" json:"server"`
+	Port       int            `proxy:"port" json:"port"`
+	Password   string         `proxy:"password" json:"password"`
+	Cipher     string         `proxy:"cipher" json:"cipher"`
+	UDP        bool           `proxy:"udp,omitempty" json:"udp,omitempty"`
+	Plugin     string         `proxy:"plugin,omitempty" json:"plugin,omitempty"`
+	PluginOpts map[string]any `proxy:"plugin-opts,omitempty" json:"plugin-opts,omitempty"`
 }
 
 type simpleObfsOption struct {

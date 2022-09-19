@@ -145,6 +145,7 @@ proxy-groups:
 
 # 规则
 rules:
+- INBOUND,i1,JK1-V4-台湾02
 # (GlobalTV)
 # > ABC
 - DOMAIN-SUFFIX,edgedatg.com,GlobalTV

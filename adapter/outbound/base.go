@@ -75,8 +75,8 @@ func (b *Base) DialOptions(opts ...dialer.Option) []dialer.Option {
 }
 
 type BasicOption struct {
-	Interface   string `proxy:"interface-name,omitempty" group:"interface-name,omitempty"`
-	RoutingMark int    `proxy:"routing-mark,omitempty" group:"routing-mark,omitempty"`
+	Interface   string `proxy:"interface-name,omitempty" group:"interface-name,omitempty" json:"interface-name,omitempty" yaml:"interface-name,omitempty"`
+	RoutingMark int    `proxy:"routing-mark,omitempty" group:"routing-mark,omitempty" json:"routing-mark,omitempty" yaml:"routing-mark,omitempty"`
 }
 
 type BaseOption struct {

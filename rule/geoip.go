@@ -14,7 +14,7 @@ type GEOIP struct {
 }
 
 func (g *GEOIP) RuleType() C.RuleType {
-	return C.GEOIP
+	return C.RuleTypeGEOIP
 }
 
 func (g *GEOIP) Match(metadata *C.Metadata) bool {

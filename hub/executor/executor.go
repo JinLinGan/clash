@@ -79,8 +79,8 @@ func ApplyConfig(cfg *config.Config, force bool) {
 	SetOtherInbounds(cfg.Inbounds)
 }
 
-func SetOtherInbounds(inbounds map[string]C.OtherInbound) {
-	P.SetOtherInbounds(inbounds)
+func SetOtherInbounds(inbounds map[string]C.Inbound) {
+	P.SetInbounds(inbounds)
 }
 
 func GetGeneral() *config.General {

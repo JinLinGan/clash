@@ -12,7 +12,7 @@ type Domain struct {
 }
 
 func (d *Domain) RuleType() C.RuleType {
-	return C.Domain
+	return C.RuleTypeDomain
 }
 
 func (d *Domain) Match(metadata *C.Metadata) bool {

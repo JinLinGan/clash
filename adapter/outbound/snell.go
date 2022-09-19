@@ -23,13 +23,13 @@ type Snell struct {
 
 type SnellOption struct {
 	BasicOption
-	Name     string         `proxy:"name"`
-	Server   string         `proxy:"server"`
-	Port     int            `proxy:"port"`
-	Psk      string         `proxy:"psk"`
-	UDP      bool           `proxy:"udp,omitempty"`
-	Version  int            `proxy:"version,omitempty"`
-	ObfsOpts map[string]any `proxy:"obfs-opts,omitempty"`
+	Name     string         `proxy:"name" json:"name"`
+	Server   string         `proxy:"server" json:"server"`
+	Port     int            `proxy:"port" json:"port"`
+	Psk      string         `proxy:"psk" json:"psk"`
+	UDP      bool           `proxy:"udp,omitempty" json:"udp,omitempty"`
+	Version  int            `proxy:"version,omitempty" json:"version,omitempty"`
+	ObfsOpts map[string]any `proxy:"obfs-opts,omitempty" json:"obfs-opts,omitempty"`
 }
 
 type streamOption struct {

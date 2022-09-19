@@ -199,7 +199,7 @@ func (t *ProxyType) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-type OtherInbound interface {
+type Inbound interface {
 	Name() string
 	Type() InboundType
 	RawAddress() string
