@@ -2,8 +2,9 @@ package route
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
-	"net"
+	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -22,6 +23,7 @@ var (
 	serverSecret = ""
 	serverAddr   = ""
 
+	server *http.Server
 	uiPath = ""
 
 	upgrader = websocket.Upgrader{
@@ -40,9 +42,10 @@ func SetUIPath(path string) {
 	uiPath = C.Path.Resolve(path)
 }
 
-func Start(addr string, secret string) {
+func Start(addr string, secret string) error {
+	// server already start
 	if serverAddr != "" {
-		return
+		return errors.New("server already started")
 	}
 
 	serverAddr = addr
@@ -88,16 +91,22 @@ func Start(addr string, secret string) {
 	} else {
 		r.Group(UI)
 	}
-
-	l, err := net.Listen("tcp", addr)
-	if err != nil {
-		log.Errorln("External controller listen error: %s", err)
-		return
+	server = &http.Server{
+		Addr:    serverAddr,
+		Handler: r,
 	}
-	serverAddr = l.Addr().String()
 	log.Infoln("RESTful API listening at: %s", serverAddr)
-	if err = http.Serve(l, r); err != nil {
-		log.Errorln("External controller serve error: %s", err)
+	if err := server.ListenAndServe(); err != nil {
+		serverAddr = ""
+		log.Errorln("External controller listen and serve error: %s", err)
+		return err
+	}
+	return nil
+}
+
+func Shutdown() {
+	if server != nil {
+		server.Shutdown(context.TODO())
 	}
 }
 

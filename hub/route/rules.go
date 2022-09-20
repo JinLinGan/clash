@@ -3,7 +3,8 @@ package route
 import (
 	"net/http"
 
-	"github.com/Dreamacro/clash/tunnel"
+	"github.com/Dreamacro/clash/config"
+	T "github.com/Dreamacro/clash/tunnel"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
@@ -12,8 +13,7 @@ import (
 func ruleRouter() http.Handler {
 	r := chi.NewRouter()
 	r.Get("/", getRules)
-	r.Post("/", addRules)
-	r.Delete("/", deleteRules)
+	r.Put("/", updateRules)
 	return r
 }
 
@@ -24,7 +24,7 @@ type Rule struct {
 }
 
 func getRules(w http.ResponseWriter, r *http.Request) {
-	rawRules := tunnel.Rules()
+	rawRules := T.Rules()
 
 	var rules []Rule
 	for _, rule := range rawRules {
@@ -40,8 +40,14 @@ func getRules(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func addRules(w http.ResponseWriter, r *http.Request) {
-}
-
-func deleteRules(w http.ResponseWriter, r *http.Request) {
+func updateRules(w http.ResponseWriter, r *http.Request) {
+	var params []config.RuleConfig
+	rules, err := config.ParseRules(params, T.Proxies())
+	if err != nil {
+		render.Status(r, http.StatusBadRequest)
+		render.JSON(w, r, newError(err.Error()))
+		return
+	}
+	T.UpdateRules(rules)
+	render.NoContent(w, r)
 }

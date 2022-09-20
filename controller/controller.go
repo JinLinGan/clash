@@ -6,6 +6,8 @@ import (
 	"github.com/Dreamacro/clash/adapter/outboundgroup"
 	"github.com/Dreamacro/clash/config"
 	C "github.com/Dreamacro/clash/constant"
+	"github.com/Dreamacro/clash/hub/route"
+
 	P "github.com/Dreamacro/clash/listener"
 	T "github.com/Dreamacro/clash/tunnel"
 )
@@ -65,4 +67,14 @@ func UpdateRules(params []config.RuleConfig) error {
 	}
 	T.UpdateRules(rules)
 	return nil
+}
+
+// StartApi 开启api服务,需go StartApi
+func StartApi(addr, secret string) error {
+	return route.Start(addr, secret)
+}
+
+// StopApi 关闭
+func StopApi() {
+	route.Shutdown()
 }

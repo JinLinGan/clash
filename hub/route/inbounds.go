@@ -4,8 +4,7 @@ import (
 	"net/http"
 
 	"github.com/Dreamacro/clash/config"
-	"github.com/Dreamacro/clash/controller"
-
+	P "github.com/Dreamacro/clash/listener"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 )
@@ -19,7 +18,7 @@ func inbounds() http.Handler {
 }
 
 func getInbounds(w http.ResponseWriter, r *http.Request) {
-	inbounds := controller.GetInbounds()
+	inbounds := P.GetInbounds()
 	var result []map[string]interface{}
 	for _, inbound := range inbounds {
 		result = append(result, map[string]interface{}{
@@ -39,7 +38,7 @@ func addInbounds(w http.ResponseWriter, r *http.Request) {
 		render.JSON(w, r, newError(err.Error()))
 		return
 	}
-	err = controller.AddInbounds(params)
+	err = P.AddInbounds(params)
 	if err != nil {
 		render.Status(r, http.StatusBadRequest)
 		render.JSON(w, r, newError(err.Error()))
@@ -56,6 +55,6 @@ func deleteInbounds(w http.ResponseWriter, r *http.Request) {
 		render.JSON(w, r, newError(err.Error()))
 		return
 	}
-	controller.DeleteInbounds(params)
+	P.DeleteInbounds(params)
 	render.NoContent(w, r)
 }

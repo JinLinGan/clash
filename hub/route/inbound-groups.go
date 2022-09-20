@@ -4,7 +4,8 @@ import (
 	"net/http"
 
 	"github.com/Dreamacro/clash/adapter/outboundgroup"
-	"github.com/Dreamacro/clash/controller"
+	T "github.com/Dreamacro/clash/tunnel"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 )
@@ -25,7 +26,7 @@ func addOutboudGroups(w http.ResponseWriter, r *http.Request) {
 		render.JSON(w, r, newError(err.Error()))
 		return
 	}
-	err = controller.AddProxyGroups(params)
+	err = T.AddOutboundGroups(params)
 	if err != nil {
 		render.Status(r, http.StatusBadRequest)
 		render.JSON(w, r, newError(err.Error()))
