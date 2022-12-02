@@ -18,9 +18,11 @@ import (
 
 type Ssh struct {
 	*Base
-	cfg    *ssh.ClientConfig
-	client *ssh.Client
-	mu     sync.Mutex
+	cfg *ssh.ClientConfig
+	//client *ssh.Client
+
+	clients    map[string]*ssh.Client
+	clientLock sync.RWMutex
 
 	originConfig *SshOption
 }
@@ -40,16 +42,24 @@ type SshOption struct {
 // relay会调用该方法,传入net.Conn,由于该net.Conn每次都是随机,新建的,无法复用ssh.Client
 // TODO: 未关闭该client和connection并每次新建,不知道会不会有其它问题
 func (s *Ssh) StreamConn(c net.Conn, metadata *C.Metadata) (net.Conn, error) {
-	conn, chans, reqs, err := ssh.NewClientConn(c, s.addr, s.cfg)
+	client, err := s.connect(c, "relay")
 	if err != nil {
 		return nil, err
 	}
-	client := ssh.NewClient(conn, chans, reqs)
-	return client.Dial("tcp", metadata.RemoteAddress())
+	cc, err := client.Dial("tcp", metadata.RemoteAddress())
+	if err != nil {
+		return nil, err
+	}
+	return NewConn(cc, s), nil
 }
 
 func (s *Ssh) DialContext(ctx context.Context, metadata *C.Metadata, opts ...dialer.Option) (_ C.Conn, err error) {
-	client, err := s.connect(ctx, opts...)
+
+	conn, err := dialer.DialContext(ctx, "tcp", s.addr, opts...)
+	if err != nil {
+		return nil, err
+	}
+	client, err := s.connect(conn, "direct")
 	if err != nil {
 		return nil, err
 	}
@@ -60,38 +70,42 @@ func (s *Ssh) DialContext(ctx context.Context, metadata *C.Metadata, opts ...dia
 	return NewConn(c, s), nil
 }
 
-func (s *Ssh) connect(ctx context.Context, opts ...dialer.Option) (*ssh.Client, error) {
-	if s.client != nil {
-		return s.client, nil
+func (s *Ssh) connect(conn net.Conn, key string) (*ssh.Client, error) {
+	s.clientLock.RLock()
+
+	if c, ok := s.clients[key]; ok {
+		s.clientLock.RUnlock()
+		return c, nil
 	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.client != nil {
-		return s.client, nil
+	s.clientLock.RUnlock()
+
+	s.clientLock.Lock()
+	defer s.clientLock.Unlock()
+
+	if c, ok := s.clients[key]; ok {
+		return c, nil
 	}
 
-	conn, err := dialer.DialContext(ctx, "tcp", s.addr, opts...)
-	if err != nil {
-		return nil, err
-	}
-
+	log.Warnln("new ssh conn [%s] %s ", key, s.addr)
 	c, chans, reqs, err := ssh.NewClientConn(conn, s.addr, s.cfg)
 	if err != nil {
 		conn.Close()
 		return nil, err
 	}
 
-	s.client = ssh.NewClient(c, chans, reqs)
+	client := ssh.NewClient(c, chans, reqs)
+	s.clients[key] = client
+
 	go func() {
-		err = s.client.Wait()
+		err = client.Wait()
 		c.Close()
 
 		log.Warnln("ssh client wait: %s", err)
-		s.mu.Lock()
-		s.client = nil
-		s.mu.Unlock()
+		s.clientLock.Lock()
+		delete(s.clients, key)
+		s.clientLock.Unlock()
 	}()
-	return s.client, nil
+	return client, nil
 }
 
 func NewSsh(option SshOption) (*Ssh, error) {
@@ -132,6 +146,7 @@ func NewSsh(option SshOption) (*Ssh, error) {
 			rmark:          option.RoutingMark,
 			originalConfig: &option,
 		},
-		cfg: cfg,
+		cfg:     cfg,
+		clients: map[string]*ssh.Client{},
 	}, nil
 }
