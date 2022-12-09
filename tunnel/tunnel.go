@@ -50,6 +50,8 @@ var (
 )
 
 func init() {
+	proxies["DIRECT"] = adapter.NewProxy(outbound.NewDirect())
+	proxies["REJECT"] = adapter.NewProxy(outbound.NewReject())
 	go process()
 }
 
