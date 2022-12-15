@@ -12,11 +12,12 @@ import (
 	"github.com/Dreamacro/clash/component/dialer"
 	C "github.com/Dreamacro/clash/constant"
 	"github.com/Dreamacro/clash/constant/provider"
+	"github.com/Dreamacro/clash/log"
 )
 
 var (
-	defaultFailedTimeout = time.Second * 3
-	defaultBlockTime     = time.Minute
+	defaultBlockTime = time.Minute
+	defaultTimeout   = time.Second * 7
 )
 
 type AutoSelector struct {
@@ -27,8 +28,6 @@ type AutoSelector struct {
 	// failedProxies 存储所有近期失败过的代理，当所有代理近期都失败过时，逐一尝试所有代理
 	failedProxies sync.Map
 
-	// failedTimeout 代理失败后重新尝试的时间间隔
-	failedTimeout time.Duration
 	// blockTime 代理失败后被关小黑屋的时长
 	blockTime time.Duration
 }
@@ -76,17 +75,25 @@ func (a *AutoSelector) DialContext(ctx context.Context, metadata *C.Metadata, op
 	if len(proxies) == 0 {
 		return nil, errors.New("no available proxies")
 	}
-
 	for _, proxy := range proxies {
 		ch := make(chan dialResult, 1)
-		dialCtx, cancel := context.WithTimeout(ctx, a.failedTimeout)
+		dialCtx, cancel := context.WithTimeout(ctx, defaultTimeout)
 		// defer cancel()
 		go func() {
-			defer cancel()
+			defer func() {
+				cancel()
+				close(ch)
+			}()
 			var r dialResult
 			r.conn, r.err = proxy.DialContext(dialCtx, metadata, a.Base.DialOptions(opts...)...)
-			ch <- r
-			close(ch)
+			select {
+			case <-ctx.Done():
+				if r.conn != nil {
+					r.conn.Close()
+				}
+			default:
+				ch <- r
+			}
 		}()
 
 		select {
@@ -97,6 +104,7 @@ func (a *AutoSelector) DialContext(ctx context.Context, metadata *C.Metadata, op
 			a.failedProxies.Store(proxy.Name(), time.Now())
 			// 出现新的关小黑屋,需要重置FindCandidatesProxy
 			a.single.Reset()
+			log.Infoln("autoSelector '%s' DialContext failed. try next: %v", proxy.Name(), r.err)
 		case <-dialCtx.Done():
 			continue
 		}
@@ -111,19 +119,27 @@ func (a *AutoSelector) ListenPacketContext(ctx context.Context, metadata *C.Meta
 	if len(proxies) == 0 {
 		return nil, errors.New("no available proxies")
 	}
-
 	for _, proxy := range proxies {
 		if proxy.SupportUDP() {
 			ch := make(chan listenPacketRes, 1)
-			dialCtx, cancel := context.WithTimeout(ctx, a.failedTimeout)
+			dialCtx, cancel := context.WithTimeout(ctx, defaultTimeout)
 			go func() {
-				defer cancel()
+				defer func() {
+					cancel()
+					close(ch)
+				}()
 				pc, err := proxy.ListenPacketContext(dialCtx, metadata, a.Base.DialOptions(opts...)...)
-				ch <- listenPacketRes{
-					conn: pc,
-					err:  err,
+				select {
+				case <-ctx.Done():
+					if pc != nil {
+						pc.Close()
+					}
+				default:
+					ch <- listenPacketRes{
+						conn: pc,
+						err:  err,
+					}
 				}
-				close(ch)
 			}()
 			select {
 			case r := <-ch:
@@ -132,6 +148,7 @@ func (a *AutoSelector) ListenPacketContext(ctx context.Context, metadata *C.Meta
 				}
 				a.failedProxies.Store(proxy.Name(), time.Now())
 				a.single.Reset()
+				log.Infoln("autoSelector '%s' ListenPacketContext failed. try next: %v", proxy.Name(), r.err)
 			case <-dialCtx.Done():
 			}
 		}
@@ -185,23 +202,29 @@ func (a *AutoSelector) Now() string {
 
 func (a *AutoSelector) FindCandidatesProxy() []C.Proxy {
 	elem, _, _ := a.single.Do(func() (any, error) {
-		all := getProvidersProxies(a.providers, true)
-		result := make([]C.Proxy, 0, len(all))
+		var (
+			all       = getProvidersProxies(a.providers, true)
+			result    = make([]C.Proxy, 0, len(all))
+			hasFailed []C.Proxy
+		)
 
 		// 被关小黑屋的时间只要在此之前就放出来
 		allowedLastFailedTime := time.Now().Add(-a.blockTime)
 		for _, proxy := range all {
-			// 短期内失败过,被关进小黑屋
-			if block, exist := a.failedProxies.Load(proxy.Name()); exist {
-				// 刑期到了,放出
-				if block.(time.Time).Before(allowedLastFailedTime) {
-					result = append(result, proxy)
-					a.failedProxies.Delete(proxy.Name())
+			proxy := proxy
+			if blockTime, ok := a.failedProxies.Load(proxy.Name()); ok {
+				// 出狱的放入hasFailed
+				if blockTime.(time.Time).Before(allowedLastFailedTime) {
+					hasFailed = append(hasFailed, proxy)
 				}
+				// 不能出狱,跳过
 				continue
 			}
+			// 没进过小黑屋,加入结果集
 			result = append(result, proxy)
 		}
+		// 出狱的append在没进过小黑屋的后方
+		result = append(result, hasFailed...)
 		// 没有结果,返回全部
 		if len(result) == 0 {
 			result = all
@@ -237,16 +260,12 @@ func NewAutoSelector(option *GroupCommonOption, providers []provider.ProxyProvid
 			Interface:   option.Interface,
 			RoutingMark: option.RoutingMark,
 		}),
-		providers:     providers,
-		single:        singledo.NewSingle(defaultGetProxiesDuration),
-		blockTime:     option.BlockTime,
-		failedTimeout: option.FailedTimeout,
+		providers: providers,
+		single:    singledo.NewSingle(time.Second * 10),
+		blockTime: option.BlockTime,
 	}
 	if as.blockTime <= 0 {
 		as.blockTime = defaultBlockTime
-	}
-	if as.failedTimeout <= 0 {
-		as.failedTimeout = defaultFailedTimeout
 	}
 
 	return as
