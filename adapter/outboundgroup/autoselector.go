@@ -96,18 +96,19 @@ func (a *AutoSelector) DialContext(ctx context.Context, metadata *C.Metadata, op
 			}
 		}()
 
+		var err error
 		select {
 		case r := <-ch:
-			if r.err == nil {
+			if err = r.err; err == nil {
 				return r.conn, nil
 			}
-			a.failedProxies.Store(proxy.Name(), time.Now())
-			// 出现新的关小黑屋,需要重置FindCandidatesProxy
-			a.single.Reset()
-			log.Infoln("autoSelector '%s' DialContext failed. try next: %v", proxy.Name(), r.err)
 		case <-dialCtx.Done():
-			continue
+			err = dialCtx.Err()
 		}
+		a.failedProxies.Store(proxy.Name(), time.Now())
+		// 出现新的关小黑屋,需要重置FindCandidatesProxy
+		a.single.Reset()
+		log.Infoln("autoSelector '%s' DialContext failed. try next: %v", proxy.Name(), err)
 	}
 
 	return nil, errors.New("no available proxies")
@@ -141,22 +142,25 @@ func (a *AutoSelector) ListenPacketContext(ctx context.Context, metadata *C.Meta
 					}
 				}
 			}()
+			var err error
 			select {
 			case r := <-ch:
-				if r.err == nil {
+				if err = r.err; err == nil {
 					return r.conn, nil
 				}
-				a.failedProxies.Store(proxy.Name(), time.Now())
-				a.single.Reset()
-				log.Infoln("autoSelector '%s' ListenPacketContext failed. try next: %v", proxy.Name(), r.err)
 			case <-dialCtx.Done():
+				err = dialCtx.Err()
 			}
+			a.failedProxies.Store(proxy.Name(), time.Now())
+			a.single.Reset()
+			log.Infoln("autoSelector '%s' ListenPacketContext failed. try next: %v", proxy.Name(), err)
 		}
 	}
 
 	return nil, errors.New("no available proxies")
 }
 
+// Deprecated: use DialContext instead.
 func (a *AutoSelector) Dial(metadata *C.Metadata) (C.Conn, error) {
 	proxies := a.FindCandidatesProxy()
 	if len(proxies) == 0 {
@@ -174,6 +178,7 @@ func (a *AutoSelector) Dial(metadata *C.Metadata) (C.Conn, error) {
 	return nil, errors.New("no available proxies")
 }
 
+// Deprecated: use DialPacketConn instead.
 func (a *AutoSelector) DialUDP(metadata *C.Metadata) (C.PacketConn, error) {
 	proxies := a.FindCandidatesProxy()
 	if len(proxies) == 0 {
