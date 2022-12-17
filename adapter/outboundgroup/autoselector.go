@@ -77,7 +77,7 @@ func (a *AutoSelector) DialContext(ctx context.Context, metadata *C.Metadata, op
 	}
 	for _, proxy := range proxies {
 		ch := make(chan dialResult, 1)
-		dialCtx, cancel := context.WithTimeout(ctx, defaultTimeout)
+		dialCtx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 		// defer cancel()
 		go func() {
 			defer func() {
@@ -87,7 +87,7 @@ func (a *AutoSelector) DialContext(ctx context.Context, metadata *C.Metadata, op
 			var r dialResult
 			r.conn, r.err = proxy.DialContext(dialCtx, metadata, a.Base.DialOptions(opts...)...)
 			select {
-			case <-ctx.Done():
+			case <-dialCtx.Done():
 				if r.conn != nil {
 					r.conn.Close()
 				}
@@ -123,7 +123,7 @@ func (a *AutoSelector) ListenPacketContext(ctx context.Context, metadata *C.Meta
 	for _, proxy := range proxies {
 		if proxy.SupportUDP() {
 			ch := make(chan listenPacketRes, 1)
-			dialCtx, cancel := context.WithTimeout(ctx, defaultTimeout)
+			dialCtx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 			go func() {
 				defer func() {
 					cancel()
@@ -131,7 +131,7 @@ func (a *AutoSelector) ListenPacketContext(ctx context.Context, metadata *C.Meta
 				}()
 				pc, err := proxy.ListenPacketContext(dialCtx, metadata, a.Base.DialOptions(opts...)...)
 				select {
-				case <-ctx.Done():
+				case <-dialCtx.Done():
 					if pc != nil {
 						pc.Close()
 					}
