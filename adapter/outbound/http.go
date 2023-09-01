@@ -110,32 +110,31 @@ func (h *Http) ProcessGetMode(c net.Conn, metadata *C.Metadata) (net.Conn, error
 		wait:        make(chan struct{}),
 	}
 
-	go func() {
-		// 嗅探流量，判断是否是 HTTP 流量
-		isHttp, cachedReader := SniffHTTPFromConn(reader)
+	//go func() {
+	// 嗅探流量，判断是否是 HTTP 流量
+	isHttp, cachedReader := SniffHTTPFromConn(reader)
 
-		// 请求不是HTTP请求，则使用CONNECT模式 进行握手，握手完成后将用户流量发送到代理服务器
-		if !isHttp {
-			// defer x.Close()
-			if err := h.shakeHand(metadata, c); err != nil {
-				// TODO: 可以尝试返回错误提示给用户
-				return
-			}
-			// 解锁 x 让外部可读
-			x.startOutSideRead()
+	// 请求不是HTTP请求，则使用CONNECT模式 进行握手，握手完成后将用户流量发送到代理服务器
+	if !isHttp {
+		// defer x.Close()
+		if err := h.shakeHand(metadata, c); err != nil {
+			// TODO: 可以尝试返回错误提示给用户
+			return nil, err
+		}
+		// 解锁 x 让外部可读
+		x.startOutSideRead()
 
+		go func() {
 			// 将客户端发来的流持续的复制到代理服务器
 			io.Copy(c, cachedReader)
-
-			return
-		}
-
+		}()
+	} else {
 		x.startOutSideRead()
 
 		// 中间人模式下，把用户的流量读成一个新的请求
 		req, err := http.ReadRequest(bufio.NewReader(cachedReader))
 		if err != nil {
-			return
+			return nil, err
 		}
 		// 修改鉴权信息
 		req.Header.Del("Proxy-Authorization")
@@ -147,10 +146,10 @@ func (h *Http) ProcessGetMode(c net.Conn, metadata *C.Metadata) (net.Conn, error
 		// 发送给代理服务器
 		err = req.WriteProxy(c)
 		if err != nil {
-			return
+			return nil, err
 		}
-	}()
-
+	}
+	//}()
 	return x, nil
 }
 
